@@ -1,9 +1,9 @@
 const express = require('express')
 const app = express()
-const port = 3001
 const bodyParser = require('body-parser')
 const morgan = require('morgan')
 const cors = require('cors')
+const PORT = process.env.PORT || 3001
 
 let data = [
   { 
@@ -77,6 +77,6 @@ app.post('/api/persons/', (req, res) => {
   console.log(data)
 })
 
-app.listen(port, () => {
-  console.log(`Example app listening at http://localhost:${port}`);
+app.listen(PORT, () => {
+  console.log(`Example app listening at http://localhost:${PORT}`);
 });
