@@ -27,7 +27,7 @@ let data = [
     "number": "39-23-6423122"
   }
 ]
-
+app.use(express.static('build'))
 app.use(cors())
 app.use(morgan('dev'))
 app.use(bodyParser.json())
