@@ -51,7 +51,7 @@ app.get('/info', (req, res) => {
 });
 
 app.get('/api/persons/:id', (req, res) => {
-  const id = req.params.id;
+  const id = Number(req.params.id);
   const person = data.find((person) => person.id === id)
 
   if (person) {
