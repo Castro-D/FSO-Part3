@@ -1,32 +1,12 @@
+require('dotenv').config()
 const express = require('express')
 const app = express()
 const bodyParser = require('body-parser')
 const morgan = require('morgan')
 const cors = require('cors')
-const PORT = process.env.PORT || 3001
+const PORT = process.env.PORT
+const Phone = require('./models/phone')
 
-let data = [
-  { 
-    "id": 1,
-    "name": "Arto Hellas", 
-    "number": "040-123456"
-  },
-  { 
-    "id": 2,
-    "name": "Ada Lovelace", 
-    "number": "39-44-5323523"
-  },
-  { 
-    "id": 3,
-    "name": "Dan Abramov", 
-    "number": "12-43-234345"
-  },
-  { 
-    "id": 4,
-    "name": "Mary Poppendieck", 
-    "number": "39-23-6423122"
-  }
-]
 app.use(express.static('build'))
 app.use(cors())
 app.use(morgan('dev'))
@@ -38,44 +18,66 @@ app.get('/', (req, res) => {
 });
 
 app.get('/api/persons', (req, res) => {
-  res.send(data);
+  Phone.find({})
+    .then((phones) => {
+      res.json(phones)
+    })
+    .catch(error => next(error))
 });
 
-app.get('/info', (req, res) => {
-  res.send(`
-    <div>
-      <p>phone book has info for ${data.length} people</p>
-      <p>${new Date()}</p>
-    </div>
-  `)
+app.get('/api/persons/:id', (req, res, next) => {
+  Phone.findById(req.params.id)
+    .then(phone => {
+      if (phone) {
+        res.json(phone)
+      } else {
+        res.status(404).end()
+      }
+    })
+    .catch(error => next(error))
 });
 
-app.get('/api/persons/:id', (req, res) => {
-  const id = Number(req.params.id);
-  const person = data.find((person) => person.id === id)
+app.delete('/api/persons/:id', (req, res, next) => {
+  Phone.findByIdAndRemove(req.params.id)
+    .then(result => {
+      res.status(204).end()
+    })
+    .catch(error => next(error))
+});
 
-  if (person) {
-    return res.send(person)
+app.post('/api/persons/', (req, res, next) => {
+  const body = req.body
+  if (body.name === undefined || body.number === undefined) {
+    return res.status(400).json({ error: 'content missing' })
   }
-  return res.status(404).json({message: `person with ${id} not found`})
-});
 
-app.delete('/api/persons/:id', (req, res) => {
-  const id = Number(req.params.id);
-  data = data.filter(person => person.id !== id)
-  res.status(204).end()
-});
+  const phone = new Phone({
+    name: body.name,
+    number: body.number
+  })
 
-app.post('/api/persons/', (req, res) => {
-  const person = req.body
-  const duplicate = data.some((obj) => obj.name === person.name)
-  if (!person.name || !person.number || duplicate ) {
-    return res.status(400).json({error: 'content missing or already exists'})
-  }
-  person.id = Math.random() * 1000000;
-  data = data.concat(person)
-  console.log(data)
+  phone.save()
+    .then(savedPhone => {
+      res.json(savedPhone)
+    })
+    .catch(error => next(error))
 })
+
+const unknownEndpoint = (req, res) => {
+  res.status(404).send({ error: 'unknown endpoint' })
+}
+app.use(unknownEndpoint)
+
+const errorHandler = (error, req, res, next) => {
+  console.error(error.message)
+  if (error.name === 'CastError') {
+    return res.status(400).send({ error: 'malformatted id' })
+  } else if (error.name === 'ValidationError') {
+    return res.status(400).json({ error: error.message })
+  }
+  next(error)
+}
+app.use(errorHandler)
 
 app.listen(PORT, () => {
   console.log(`Example app listening at http://localhost:${PORT}`);
